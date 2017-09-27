@@ -124,9 +124,10 @@
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
+      <AdditionalIncludeDirectories>..\_toolkits\srt\pthread-win32\include;..\_toolkits\srt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies />
+      <AdditionalDependencies>ws2_32.lib;..\_toolkits\srt\lib\srt.lib;..\_toolkits\srt\pthread-win32\lib\pthread_lib.lib;..\_toolkits\srt\openssl-win64\lib\ssleay32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
