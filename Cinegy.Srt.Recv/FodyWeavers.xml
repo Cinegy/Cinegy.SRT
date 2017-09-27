@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Weavers>
+  <Costura CreateTemporaryAssemblies='true' IncludeDebugSymbols='false'>
+    <IncludeAssemblies>
+      CommandLine
+    </IncludeAssemblies>
+    <Unmanaged64Assemblies>
+      Cinegy.Srt.Wrapper
+      srt
+      libeay32
+    </Unmanaged64Assemblies>
+    <PreloadOrder>
+      libeay32
+      srt
+    </PreloadOrder>
+  </Costura>
+</Weavers>
