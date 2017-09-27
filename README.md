@@ -6,11 +6,13 @@ These tools are designed to help aid testing, and to provide a reference for how
 
 They are not currently for any kind of production - and are likely to get broken and changed. However, they are provided publically to help anyone else working to improve and use the SRT library.
 
+All the dependent DLLs for SRT are blended into each EXE, using Costura, so you should be able to drag / drop the resulting tool to any machine with .NET 451 and the VS 2013 / VS 2015 x64 runtimes (pick the VC runtime depending on how this pack was built - by default we use VC2015).
+
 # Auto Building
 
 Just to make your life easier, we auto-build this using AppVeyor - here is how we are doing right now: 
 
-[![Build status](https://ci.appveyor.com/api/projects/status/fixme/branch/master?svg=true)](https://ci.appveyor.com/project/cinegy/cinegy.srt/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/e74bhgj9ywocnwr4?svg=true)](https://ci.appveyor.com/project/cinegy/cinegy-srt)(https://ci.appveyor.com/project/cinegy/cinegy.srt/branch/master)
 
 You can check out the latest compiled binary from the master or pre-master code here:
 
