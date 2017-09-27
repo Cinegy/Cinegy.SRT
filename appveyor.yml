@@ -1,0 +1,24 @@
+version: 0.0.{build}
+configuration: Release
+platform: x64
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '{version}'
+  assembly_file_version: '{version}'
+  assembly_informational_version: '{version}'
+before_build:
+- cmd: nuget restore
+- cmd: get-SRT-libraries.bat
+build:
+  project: Cinegy.Srt.sln
+  verbosity: minimal
+after_build:
+- cmd: >-
+    7z a Cinegy.Srt-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%.zip %APPVEYOR_BUILD_FOLDER%\Cinegy.Srt.Recv\bin\Release\Cinegy.Srt.Recv.exe
+
+    appveyor PushArtifact Cinegy.Srt-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%.zip
+    
+    7z a Cinegy.Srt-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%-PDB.zip %APPVEYOR_BUILD_FOLDER%\Cinegy.Srt.Recv\bin\Release
+
+    appveyor PushArtifact Cinegy.Srt-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%-PDB.zip

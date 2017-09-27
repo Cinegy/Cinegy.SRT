@@ -1,0 +1,15 @@
+*.suo
+/x64
+/ipch
+/Debug
+/Cinegy.Srt.Wrapper/x64
+/Cinegy.Srt.Wrapper/Debug
+/Cinegy.Srt.Recv/obj
+bin
+/*.opendb
+/Cinegy.Srt.VC.db
+/Cinegy.Srt.Wrapper/Cinegy.Srt.Wrapper.vcxproj.user
+_toolkits
+/srtpackage.zip
+/Cinegy.Srt.Recv/Cinegy.Srt.Recv.csproj.user
+packages
