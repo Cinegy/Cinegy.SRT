@@ -29,11 +29,11 @@ namespace Cinegy
 
 		SRTSOCKET m_bindsock = SRT_INVALID_SOCK;
 		SRTSOCKET m_sock = SRT_INVALID_SOCK;
-		const size_t DEFAULT_CHUNK = 1316;
+		const size_t DEFAULT_CHUNK = 1328;
 
 		int bw_report = 0;
 		unsigned stats_report_freq = 0;
-		size_t chunk = 1316;
+		size_t chunk = 1328;
 
 		typedef std::vector<char> bytevector;
 		
@@ -67,7 +67,7 @@ namespace Cinegy
 		{
 			static size_t counter = 1;
 
-			bytevector data(chunk);
+			bytevector data(chunk * 2);
 			bool ready = true;
 			int stat;
 			do
@@ -86,6 +86,11 @@ namespace Cinegy
 					// Not necessarily eof. Closed connection is reported as error.
 					//this_thread::sleep_for(chrono::milliseconds(10));
 					ready = false;
+				}
+				if (stat != chunk)
+				{
+					//expect stat to return standard chunk size; if this is not true, maybe we have leak
+					Console::WriteLine("Unexpected data size: {0}", stat);
 				}
 			} while (!ready);
 
