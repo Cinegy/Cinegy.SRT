@@ -25,14 +25,26 @@ namespace Cinegy.Srt.Recv
     {
         private static UdpClient _udpClient;
 
+        private static SrtReceiver _srtRecvr = new SrtReceiver();
+        private static bool _running = false;
+
         private static int Main(string[] args)
         {
+            Console.CancelKeyPress += delegate {
+                _running = false;
+            };
+
             var result = Parser.Default.ParseArguments<Options>(args);
 
             return result.MapResult(
                 Run,
                 errs => CheckArgumentErrors());
 
+        }
+
+        ~Program()
+        {
+            _srtRecvr.Stop();
         }
 
         private static int CheckArgumentErrors()
@@ -45,27 +57,35 @@ namespace Cinegy.Srt.Recv
 
         private static int Run(Options opts)
         {
-            var srtRecvr = new SrtReceiver();
 
-            srtRecvr.SetHostname(opts.InputAdapterAddress);
-            srtRecvr.SetPort(opts.SrtPort);
-            srtRecvr.OnDataReceived += SrtRecvr_OnDataReceived;
+            _srtRecvr.SetHostname(opts.InputAdapterAddress);
+            _srtRecvr.SetPort(opts.SrtPort);
+            _srtRecvr.OnDataReceived += SrtRecvr_OnDataReceived;
 
-            Console.WriteLine($"About to attempt to bind for listening as SRT TARGET on {srtRecvr.GetHostname()}:{srtRecvr.GetPort()}");
+            Console.WriteLine($"About to attempt to bind for listening as SRT TARGET on {_srtRecvr.GetHostname()}:{_srtRecvr.GetPort()}");
 
             PrepareOutputUdpClient(opts.OutputAdapterAddress, opts.MulticastAddress, opts.MulticastPort);
 
-            srtRecvr.Run();
+            _running = true;
+
+            while (_running)
+            {
+                _srtRecvr.Run();
+                Console.WriteLine("\nConnection closed, resetting...");
+                System.Threading.Thread.Sleep(100);
+            }
 
             return 0;
         }
 
         private static void SrtRecvr_OnDataReceived(sbyte* data, ulong dataSize)
         {
+            if (dataSize < 1) return;
             var ptr = new IntPtr(data);
             var dataarr = new byte[dataSize];
             Marshal.Copy(ptr, dataarr, 0, dataarr.Length);
             _udpClient.Send(dataarr, dataarr.Length);
+           // Console.Write(".");
         }
         
         private static void PrepareOutputUdpClient(string adapterAddress, string multicastAddress, int multicastGroup)
