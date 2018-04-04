@@ -15,6 +15,7 @@ namespace Cinegy
 		public:
 			//Helper(void);
 			void SrtReceiver::Run();
+			void SrtReceiver::Stop();
 			int GetPort() { return _port; };
 			void SetPort(int value) { _port = value; }
 			void SetHostname(String^ value) { _strHostname = _strHostname->Copy(value); }

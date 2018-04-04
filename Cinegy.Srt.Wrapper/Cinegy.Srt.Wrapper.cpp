@@ -29,11 +29,12 @@ namespace Cinegy
 
 		SRTSOCKET m_bindsock = SRT_INVALID_SOCK;
 		SRTSOCKET m_sock = SRT_INVALID_SOCK;
-		const size_t DEFAULT_CHUNK = 1328;
+		const size_t DEFAULT_CHUNK = 1316;
 
 		int bw_report = 0;
 		unsigned stats_report_freq = 0;
-		size_t chunk = 1328;
+		size_t chunk = 1316;
+		bool m_running = false;
 
 		typedef std::vector<char> bytevector;
 		
@@ -70,6 +71,7 @@ namespace Cinegy
 			bytevector data(chunk * 2);
 			bool ready = true;
 			int stat;
+
 			do
 			{
 				stat = srt_recvmsg(m_sock, data.data(), (int)chunk);
@@ -78,13 +80,15 @@ namespace Cinegy
 				{
 					auto errDesc = UDT::getlasterror_desc();
 					Console::WriteLine("recvmsg Error: {0}", gcnew String(errDesc));
+					m_running = false;
+					srt_close(m_bindsock);
+
 					return bytevector();
 				}
 
 				if (stat == 0)
 				{
 					// Not necessarily eof. Closed connection is reported as error.
-					//this_thread::sleep_for(chrono::milliseconds(10));
 					ready = false;
 				}
 				if (stat != chunk)
@@ -141,8 +145,15 @@ namespace Cinegy
 				auto errDesc = UDT::getlasterror_desc();
 				Console::WriteLine("srt_accept Error: {0}", gcnew String(errDesc));
 			}
+			else
+			{
+				char saddr[INET_ADDRSTRLEN];
+				inet_ntop(AF_INET, &(scl.sin_addr), saddr, INET_ADDRSTRLEN);
+				Console::WriteLine("Connection accepted from: {0}", gcnew String(saddr));
+			}
+			m_running = true;
 
-			for (;;)
+			while(m_running)
 			{
 				const bytevector& data = Read(chunk);
 								
@@ -153,6 +164,13 @@ namespace Cinegy
 
 			return;
 		}
+
+		void SrtReceiver::Stop()
+		{
+			m_running = false;
+		}
+
+
 
 
 	}
