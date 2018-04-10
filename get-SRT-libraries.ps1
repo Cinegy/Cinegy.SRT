@@ -4,7 +4,7 @@
 
 $SRT_Package_url = "https://ci.appveyor.com/api/buildjobs/2cqoxhdar6ska5r8/artifacts/SRT-master-Release-1.0.469.zip"
 
-$SRTPackageName =  Split-Path -Path $url -Leaf
+$SRTPackageName =  Split-Path -Path $SRT_Package_url -Leaf
 
 Write-Host "Downloading ZIP with SRT package... please be patient"
 
