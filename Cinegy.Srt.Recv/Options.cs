@@ -6,11 +6,11 @@ namespace Cinegy.Srt.Recv
     internal class Options
     {
         [Option('m', "multicastaddress", Required = true,
-        HelpText = "Input multicast address group to stream to.")]
+        HelpText = "Output multicast address group to stream to.")]
         public string MulticastAddress { get; set; }
 
         [Option('p', "mulicastport", Required = true,
-        HelpText = "Input multicast port to stream to.")]
+        HelpText = "Output multicast port to stream to.")]
         public int MulticastPort { get; set; }
 
         [Option('o', "outputadapter", Required = false,
