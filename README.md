@@ -14,16 +14,11 @@ Just to make your life easier, we auto-build this using AppVeyor - here is how w
 
 Cinegy SRT Tools Build Status:
 
-![Build status](https://ci.appveyor.com/api/projects/status/e74bhgj9ywocnwr4?svg=true)
+[![Build status](https://ci.appveyor.com/api/projects/status/ko7tpaaxyn4d5dnt?svg=true)](https://ci.appveyor.com/project/cinegy/cinegy-srt/srt)
 
 You can check out the latest compiled binary from the master or pre-master code here:
 
 [AppVeyor Cinegy SRT Project Builder](https://ci.appveyor.com/project/cinegy/cinegy-srt/build/artifacts)
 
-We forked the main SRT library here, https://github.com/Cinegy/srt, mainly to allow us to strap some automatic building steps to the core which we can use to then build these downstream tools.
+We forked the main SRT library here, https://github.com/Cinegy/srt, mainly to allow us to strap some automatic building steps to the core which we can use to then build these downstream tools. Grab binaries from this fork from this location.
 
-If you want some SRT libraries pre-built and with the required PThreads and OpenSSL libraries and includes, you can see these here:
-
-[![Build status](https://ci.appveyor.com/api/projects/status/ko7tpaaxyn4d5dnt?svg=true)](https://ci.appveyor.com/project/cinegy/srt)
-
-[AppVeyor SRT Project Builder](https://ci.appveyor.com/project/cinegy/srt/build/artifacts)
