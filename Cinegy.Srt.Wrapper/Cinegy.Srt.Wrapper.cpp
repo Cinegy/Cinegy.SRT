@@ -29,7 +29,7 @@ namespace Cinegy
 
 		SRTSOCKET m_bindsock = SRT_INVALID_SOCK;
 		SRTSOCKET m_sock = SRT_INVALID_SOCK;
-		const size_t DEFAULT_CHUNK = 1316;
+		const size_t DEFAULT_CHUNK = 1328;
 
 		int bw_report = 0;
 		unsigned stats_report_freq = 0;
