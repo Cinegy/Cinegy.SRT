@@ -91,11 +91,7 @@ namespace Cinegy
 					// Not necessarily eof. Closed connection is reported as error.
 					ready = false;
 				}
-				if (stat != chunk)
-				{
-					//expect stat to return standard chunk size; if this is not true, maybe we have leak
-					Console::WriteLine("Unexpected data size: {0}", stat);
-				}
+				
 			} while (!ready);
 
 			chunk = size_t(stat);
