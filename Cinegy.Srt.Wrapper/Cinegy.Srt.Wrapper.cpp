@@ -33,7 +33,7 @@ namespace Cinegy
 
 		int bw_report = 0;
 		unsigned stats_report_freq = 0;
-		size_t chunk = 1316;
+		size_t chunk = DEFAULT_CHUNK;
 		bool m_running = false;
 
 		typedef std::vector<char> bytevector;
