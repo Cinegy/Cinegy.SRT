@@ -24,10 +24,12 @@ build:
 after_build:
 - cmd: >-
     7z a Cinegy.Srt-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%.zip %APPVEYOR_BUILD_FOLDER%\Cinegy.Srt.Recv\bin\Release\Cinegy.Srt.Recv.exe
+    7z a Cinegy.Srt-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%.zip %APPVEYOR_BUILD_FOLDER%\Cinegy.Srt.StreamAnalyser\bin\Release\Cinegy.Srt.StreamAnalyser.exe
 
     appveyor PushArtifact Cinegy.Srt-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%.zip
     
     7z a Cinegy.Srt-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%-PDB.zip %APPVEYOR_BUILD_FOLDER%\Cinegy.Srt.Recv\bin\Release
+    7z a Cinegy.Srt-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%-PDB.zip %APPVEYOR_BUILD_FOLDER%\Cinegy.Srt.StreamAnalyser\bin\Release
 
     appveyor PushArtifact Cinegy.Srt-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%-PDB.zip
 
