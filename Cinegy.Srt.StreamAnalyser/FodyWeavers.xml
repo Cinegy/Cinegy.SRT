@@ -3,6 +3,13 @@
   <Costura CreateTemporaryAssemblies="true" IncludeDebugSymbols="false">
     <IncludeAssemblies>
       CommandLine
+      NLog
+      Cinegy.Telemetry
+      Cinegy.TsDecoder
+      Cinegy.TsAnalysis
+      Cinegy.TtxDecoder
+      System.Text.Encoding.CodePages
+      Newtonsoft.Json
     </IncludeAssemblies>
     <Unmanaged64Assemblies>
       Cinegy.Srt.Wrapper

@@ -1,4 +1,4 @@
-/*   Copyright 2017 Cinegy GmbH
+/* Copyright 2019 Cinegy GmbH
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,11 +13,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//This class creates a limited wrapper around the SDT library, and is 
+//This class creates a limited wrapper around the SRT library, and is 
 //currently really just for testing more easily on Windows with a minimum
 //footprint of extra features.
 
-//see https://github.com/Haivision/srt for details of the libary.
+//see https://github.com/Haivision/srt for details of the library.
 
 #include "stdafx.h"
 #include "Cinegy.Srt.Wrapper.h"
@@ -163,6 +163,8 @@ namespace Cinegy
 
 		void SrtReceiver::Stop()
 		{
+			srt_close(m_bindsock);
+			srt_cleanup();
 			m_running = false;
 		}
 

@@ -5,17 +5,17 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{FF977CE6-A235-44FD-A759-3763B9279120}</ProjectGuid>
+    <ProjectGuid>{BE8BE9F9-1D72-4A66-AC3C-BF4A6F4E80DB}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cinegy.Srt.Recv</RootNamespace>
-    <AssemblyName>Cinegy.Srt.Recv</AssemblyName>
+    <RootNamespace>Cinegy.Srt.Analyser</RootNamespace>
+    <AssemblyName>Cinegy.Srt.Analyser</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFrameworkProfile />
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
@@ -26,6 +26,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -39,15 +40,46 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Cinegy.Telemetry, Version=2.0.20.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Cinegy.Telemetry.2.0.20-beta\lib\netstandard2.0\Cinegy.Telemetry.dll</HintPath>
+    </Reference>
+    <Reference Include="Cinegy.TsAnalysis, Version=0.0.23.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Cinegy.TsAnalysis.0.0.23-beta\lib\netstandard2.0\Cinegy.TsAnalysis.dll</HintPath>
+    </Reference>
+    <Reference Include="Cinegy.TsDecoder, Version=3.0.113.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Cinegy.TsDecoder.3.0.113-beta\lib\netstandard2.0\Cinegy.TsDecoder.dll</HintPath>
+    </Reference>
+    <Reference Include="Cinegy.TtxDecoder, Version=2.0.37.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Cinegy.TtxDecoder.2.0.37-beta\lib\netstandard2.0\Cinegy.TtxDecoder.dll</HintPath>
+    </Reference>
     <Reference Include="CommandLine, Version=2.4.3.0, Culture=neutral, PublicKeyToken=de6f01bd326f8c32, processorArchitecture=MSIL">
       <HintPath>..\packages\CommandLineParser.2.4.3\lib\netstandard2.0\CommandLine.dll</HintPath>
     </Reference>
     <Reference Include="Costura, Version=3.3.2.0, Culture=neutral, PublicKeyToken=9919ef960d84173d, processorArchitecture=MSIL">
       <HintPath>..\packages\Costura.Fody.3.3.2\lib\net40\Costura.dll</HintPath>
-      <Private>True</Private>
+    </Reference>
+    <Reference Include="Elasticsearch.Net, Version=6.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
+      <HintPath>..\packages\Elasticsearch.Net.6.5.1\lib\net461\Elasticsearch.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.4.5.11\lib\net45\NLog.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.5.2\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Text.Encoding.CodePages, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Encoding.CodePages.4.5.1\lib\net461\System.Text.Encoding.CodePages.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -79,13 +111,11 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
-  </PropertyGroup>
-  <PropertyGroup>
-    <PreBuildEvent>md $(ProjectDir)costura64
-copy $(ProjectDir)..\_toolkits\srt\bin\srt.dll $(ProjectDir)costura64\
-copy $(ProjectDir)..\_toolkits\srt\openssl-win64\bin\libeay32.dll $(ProjectDir)costura64\</PreBuildEvent>
+    <PreBuildEvent>
+      md $(ProjectDir)costura64
+      copy $(ProjectDir)..\_toolkits\srt\bin\srt.dll $(ProjectDir)costura64\
+      copy $(ProjectDir)..\_toolkits\srt\openssl-win64\bin\libeay32.dll $(ProjectDir)costura64\
+    </PreBuildEvent>
   </PropertyGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

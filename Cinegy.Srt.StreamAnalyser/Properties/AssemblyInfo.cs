@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Cinegy.Srt.Recv")]
+[assembly: AssemblyTitle("Cinegy.Srt.Analyser")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Cinegy.Srt.Recv")]
-[assembly: AssemblyCopyright("Copyright ©Cinegy GmbH 2019")]
+[assembly: AssemblyProduct("Cinegy.Srt.Analyser")]
+[assembly: AssemblyCopyright("Copyright ©  2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("ff977ce6-a235-44fd-a759-3763b9279120")]
+[assembly: Guid("be8be9f9-1d72-4a66-ac3c-bf4a6f4e80db")]
 
 // Version information for an assembly consists of the following four values:
 //
