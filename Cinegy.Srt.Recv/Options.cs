@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using CommandLine;
+﻿using CommandLine;
 
 namespace Cinegy.Srt.Recv
 {
