@@ -10,9 +10,10 @@ bin
 /Cinegy.Srt.VC.db
 /Cinegy.Srt.Wrapper/Cinegy.Srt.Wrapper.vcxproj.user
 _toolkits
+/srtpackage.zip
 /Cinegy.Srt.Recv/Cinegy.Srt.Recv.csproj.user
 packages
 /Cinegy.Srt.Recv/costura64/libeay32.dll
 /Cinegy.Srt.Recv/costura64/srt.dll
 /Cinegy.Srt.sln.DotSettings.user
-/SRT-*.zip
+/SRT-Branch_v1.3.2-Release-Winx64-2015-1.3.2.76.zip
