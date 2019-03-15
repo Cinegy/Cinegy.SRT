@@ -8,8 +8,8 @@
     <ProjectGuid>{BE8BE9F9-1D72-4A66-AC3C-BF4A6F4E80DB}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cinegy.Srt.Analyser</RootNamespace>
-    <AssemblyName>Cinegy.Srt.Analyser</AssemblyName>
+    <RootNamespace>Cinegy.Srt.StreamAnalyser</RootNamespace>
+    <AssemblyName>Cinegy.Srt.StreamAnalyser</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
