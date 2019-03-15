@@ -14,7 +14,7 @@ Just to make your life easier, we auto-build this using AppVeyor - here is how w
 
 Cinegy SRT Tools Build Status:
 
-[![Build status](https://ci.appveyor.com/api/projects/status/ko7tpaaxyn4d5dnt?svg=true)](https://ci.appveyor.com/project/cinegy/cinegy-srt/srt)
+[![Build status](https://ci.appveyor.com/api/projects/status/e74bhgj9ywocnwr4?svg=true)](https://ci.appveyor.com/project/cinegy/cinegy-srt)
 
 You can check out the latest compiled binary from the master or pre-master code here:
 
