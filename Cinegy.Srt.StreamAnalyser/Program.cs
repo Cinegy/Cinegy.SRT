@@ -22,12 +22,14 @@ using NLog;
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Mime;
 using System.Reflection;
 using System.Runtime;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using SrtSharp;
 
 namespace Cinegy.Srt.StreamAnalyser
 {
@@ -36,12 +38,20 @@ namespace Cinegy.Srt.StreamAnalyser
     {   private static Options _options;
         private static Logger _logger;
         private static Analyser _analyser;
+        private static Thread _receiverThread;
         private static readonly DateTime StartTime = DateTime.UtcNow;
         private static bool _pendingExit;
         private static readonly StringBuilder ConsoleDisplay = new StringBuilder(1024);
         private static int _lastPrintedTsCount;
-        private static SrtReceiver _srtReceiver = new SrtReceiver();
-        private static Thread _receiverThread;
+        //private static Thread _receiverThread; 
+        
+        // SRT related constant values - probably should end up wrapped within the SrtSharp library itself
+        private const int AF_INET = 2;
+        private const int SOCK_DGRAM = 2; /* datagram socket */
+        private const int DEFAULT_CHUNK = 1328;
+
+        private static int _srtHandle;
+        private static bool _packetsStarted;
 
         static int Main(string[] args)
         {
@@ -166,14 +176,33 @@ namespace Cinegy.Srt.StreamAnalyser
                     _analyser.TeletextDecoder.Service.TeletextPageReady += Service_TeletextPageReady;
                     _analyser.TeletextDecoder.Service.TeletextPageCleared += Service_TeletextPageCleared;
                 }
+                srt.srt_startup();
 
-                _srtReceiver.SetHostname(streamOptions.AdapterAddress);
-                _srtReceiver.SetPort(streamOptions.SrtPort);
-                _srtReceiver.OnDataReceived += SrtReceiverOnDataReceived;
-                
+                var destination = IPAddress.Parse(streamOptions.SrtAddress);
+
+                _srtHandle = srt.srt_socket(AF_INET, SOCK_DGRAM, 0);
+
+                var sin = new sockaddr_in()
+                {
+                    sin_family = AF_INET,
+                    sin_port = (ushort)IPAddress.HostToNetworkOrder((short)streamOptions.SrtPort),
+#pragma warning disable 618
+                    sin_addr = (uint)destination.Address,
+#pragma warning restore 618
+                    sin_zero = 0
+                };
+
+                var hnd = GCHandle.Alloc(sin, GCHandleType.Pinned);
+
+                var socketAddress = new SWIGTYPE_p_sockaddr(hnd.AddrOfPinnedObject(), false);
+
+                srt.srt_connect(_srtHandle, socketAddress, sizeof(SrtSharp.sockaddr_in));
+
+                Console.WriteLine($"Requesting SRT Transport Stream on srt://@{streamOptions.SrtAddress}:{streamOptions.SrtPort}");
+
                 var ts = new ThreadStart(delegate
                 {
-                    SrtWorkerThread(_srtReceiver);
+                    ReceivingNetworkWorkerThread();
                 });
 
                 _receiverThread = new Thread(ts);
@@ -418,27 +447,47 @@ namespace Cinegy.Srt.StreamAnalyser
             }
         }
 
-        private static void SrtWorkerThread(SrtReceiver client)
+        private static void ReceivingNetworkWorkerThread()
         {
+            var buf = new byte[DEFAULT_CHUNK * 2];
             while (!_pendingExit)
             {
-                client.Run();
-                Console.WriteLine("\nConnection closed, resetting...");
-                Thread.Sleep(100);
+                var stat = srt.srt_recvmsg(_srtHandle, buf, DEFAULT_CHUNK);
+
+                if (stat == srt.SRT_ERROR)
+                {
+                    _pendingExit = true;
+                    Console.WriteLine($"Error in reading loop.");
+                }
+                else
+                {
+                    if (!_packetsStarted)
+                    {
+                        Console.WriteLine("Started receiving SRT packets...");
+                        _packetsStarted = true;
+                    }
+                    try
+                    {
+                        var data = new byte[stat];
+                        Buffer.BlockCopy(buf, 0, data, 0, stat);
+                        _analyser.RingBuffer.Add(ref data);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($@"Unhandled exception within network receiver: {ex.Message}");
+                        return;
+                    }
+                }
             }
+
+            Console.WriteLine("Closing SRT Receiver");
+            srt.srt_close(_srtHandle);
+            srt.srt_cleanup();
+            _srtHandle = -1;
 
             Environment.Exit(0);
         }
-
-        private static void SrtReceiverOnDataReceived(sbyte* data, ulong dataSize)
-        {
-            if (dataSize < 1) return;
-            var ptr = new IntPtr(data);
-            var dataArr = new byte[dataSize];
-            Marshal.Copy(ptr, dataArr, 0, dataArr.Length);
-            _analyser.RingBuffer.Add(ref dataArr);
-        }
-
+        
         private static TeletextPage _decodedSubtitlePage;
 
         private static void Service_TeletextPageReady(object sender, EventArgs e)
@@ -463,7 +512,6 @@ namespace Cinegy.Srt.StreamAnalyser
             Console.CursorVisible = true;
             if (_pendingExit) return; //already trying to exit - allow normal behaviour on subsequent presses
             _pendingExit = true;
-            _srtReceiver.Stop();
             _analyser.Cancel();
             _analyser = null;
             //_receiverThread.Abort(); 

@@ -16,12 +16,12 @@ namespace Cinegy.Srt.Recv
         HelpText = "IP address of the adapter to emit multicast on (if not set, tries first binding adapter).")]
         public string OutputAdapterAddress { get; set; }
 
-        [Option('i', "inputadapter", Required = true,
-        HelpText = "IP address of the adapter to listen for SRT connections")]
-        public string InputAdapterAddress { get; set; }
+        [Option('a', "srtaddress", Required = true,
+        HelpText = "IP address of the source listener to pull data from")]
+        public string SrtAddress { get; set; }
 
         [Option('s', "srtport", Required = false, Default = 9000,
-        HelpText = "UDP port to listen for inbound SRT data on.")]
+        HelpText = "UDP port on the source listener to connect to")]
         public int SrtPort { get; set; }
 
         [Option('q', "quiet", Required = false, Default = false,
