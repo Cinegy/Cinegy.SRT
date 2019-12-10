@@ -46,7 +46,6 @@ namespace Cinegy.Srt.Recv
             return result.MapResult(
                 Run,
                 errs => CheckArgumentErrors());
-
         }
 
         ~Program()
@@ -66,12 +65,9 @@ namespace Cinegy.Srt.Recv
 
         private static int Run(Options opts)
         {
-            PrepareOutputUdpClient(opts.OutputAdapterAddress, opts.MulticastAddress, opts.MulticastPort);
-            
+            PrepareOutputUdpClient(opts.OutputAdapterAddress, opts.MulticastAddress, opts.MulticastPort);            
             srt.srt_startup();
-
             var destination = IPAddress.Parse(opts.SrtAddress);
-
             _srtHandle = srt.srt_socket(AF_INET, SOCK_DGRAM, 0);
 
             var sin = new sockaddr_in()
@@ -85,27 +81,19 @@ namespace Cinegy.Srt.Recv
             };
 
             var hnd = GCHandle.Alloc(sin, GCHandleType.Pinned);
-
             var socketAddress = new SWIGTYPE_p_sockaddr(hnd.AddrOfPinnedObject(), false);
-
             srt.srt_connect(_srtHandle, socketAddress, sizeof(SrtSharp.sockaddr_in));
-
             Console.WriteLine($"Requesting SRT Transport Stream on srt://@{opts.SrtAddress}:{opts.SrtPort}");
-
             var ts = new ThreadStart(ReceivingNetworkWorkerThread);
-
             var receiverThread = new Thread(ts) { Priority = ThreadPriority.Highest };
-
             receiverThread.Start();
 
             while (!_pendingExit)
             {
                 Thread.Sleep(10);
-                Console.WriteLine("/");
             }
             
-            receiverThread.Abort();
-            
+            receiverThread.Abort();            
             Console.WriteLine("Press enter to exit");
             Console.ReadLine();
 
@@ -165,8 +153,6 @@ namespace Cinegy.Srt.Recv
 
             var parsedMulticastAddress = IPAddress.Parse(multicastAddress);
             _udpClient.Connect(parsedMulticastAddress, multicastGroup);
-        }
-        
-
+        }      
     }
 }
