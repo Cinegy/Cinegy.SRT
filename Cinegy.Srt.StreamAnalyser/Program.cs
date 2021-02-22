@@ -37,7 +37,7 @@ namespace Cinegy.Srt.StreamAnalyser
     internal unsafe class Program
     {   private static Options _options;
         private static Logger _logger;
-        private static Analyser _analyser;
+        private static Analyzer _analyser;
         private static Thread _receiverThread;
         private static readonly DateTime StartTime = DateTime.UtcNow;
         private static bool _pendingExit;
@@ -124,16 +124,20 @@ namespace Cinegy.Srt.StreamAnalyser
 
             LogSetup.ConfigureLogger("srtstreamanalyser", opts.OrganizationId, opts.DescriptorTags, "https://telemetry.cinegy.com", opts.TelemetryEnabled, false, "SRTStreamAnalyser", buildVersion);
 
-            _analyser = new Analyser(_logger);
+            _analyser = new Analyzer(_logger);
 
-            var location = Assembly.GetEntryAssembly().Location;
+            var location = AppContext.BaseDirectory;
 
             _logger.Info($"Cinegy Transport Stream Monitoring and Analysis Tool (Built: {File.GetCreationTime(location)})");
 
             try
             {
                 Console.CursorVisible = false;
-                Console.SetWindowSize(120, 50);
+
+                if (OperatingSystem.IsWindows())
+                {
+                    Console.SetWindowSize(120, 50);
+                }
                 Console.OutputEncoding = Encoding.Unicode;
             }
             catch
@@ -256,10 +260,8 @@ namespace Cinegy.Srt.StreamAnalyser
                 var rtpMetric = _analyser.RtpMetric;
 
                 PrintToConsole(
-                    "\nNetwork Details\n----------------\nTotal Packets Rcvd: {0} \tBuffer Usage: {1:0.00}%/(Peak: {2:0.00}%)\t\t\nTotal Data (MB): {3}\t\tPackets per sec:{4}\t",
-                    networkMetric.TotalPackets, networkMetric.NetworkBufferUsage, networkMetric.PeriodMaxNetworkBufferUsage,
-                    networkMetric.TotalData / 1048576,
-                    networkMetric.PacketsPerSecond);
+                    "\nNetwork Details\n----------------\nTotal Packets Rcvd: {0}  \t\t\nTotal Data (MB): {1}\t\tPackets per sec:{2}\t",
+                    networkMetric.TotalPackets, networkMetric.TotalData / 1048576, networkMetric.PacketsPerSecond);
 
                 PrintToConsole("Period Max Packet Jitter (ms): {0}\t\t",
                     networkMetric.PeriodLongestTimeBetweenPackets);

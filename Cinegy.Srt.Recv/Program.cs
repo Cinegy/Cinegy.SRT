@@ -92,8 +92,7 @@ namespace Cinegy.Srt.Recv
             {
                 Thread.Sleep(10);
             }
-            
-            receiverThread.Abort();            
+                      
             Console.WriteLine("Press enter to exit");
             Console.ReadLine();
 
