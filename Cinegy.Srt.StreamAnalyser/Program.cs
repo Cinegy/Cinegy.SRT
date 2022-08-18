@@ -22,12 +22,11 @@ using NLog;
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Mime;
 using System.Reflection;
 using System.Runtime;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using SrtSharp;
 
 namespace Cinegy.Srt.StreamAnalyser
 {
@@ -35,13 +34,16 @@ namespace Cinegy.Srt.StreamAnalyser
     internal unsafe class Program
     {   private static Options _options;
         private static Logger _logger;
-        private static Analyser _analyser;
+        private static Analyzer _analyser;
+        private static Thread _receiverThread;
         private static readonly DateTime StartTime = DateTime.UtcNow;
         private static bool _pendingExit;
         private static readonly StringBuilder ConsoleDisplay = new StringBuilder(1024);
         private static int _lastPrintedTsCount;
-        private static SrtReceiver _srtReceiver = new SrtReceiver();
-        private static Thread _receiverThread;
+        //private static Thread _receiverThread; 
+        
+        private static SWIGTYPE_p_int32_t _srtHandle;
+        private static bool _packetsStarted;
 
         static int Main(string[] args)
         {
@@ -114,16 +116,20 @@ namespace Cinegy.Srt.StreamAnalyser
 
             LogSetup.ConfigureLogger("srtstreamanalyser", opts.OrganizationId, opts.DescriptorTags, "https://telemetry.cinegy.com", opts.TelemetryEnabled, false, "SRTStreamAnalyser", buildVersion);
 
-            _analyser = new Analyser(_logger);
+            _analyser = new Analyzer(_logger);
 
-            var location = Assembly.GetEntryAssembly().Location;
+            var location = AppContext.BaseDirectory;
 
             _logger.Info($"Cinegy Transport Stream Monitoring and Analysis Tool (Built: {File.GetCreationTime(location)})");
 
             try
             {
                 Console.CursorVisible = false;
-                Console.SetWindowSize(120, 50);
+
+                if (OperatingSystem.IsWindows())
+                {
+                    Console.SetWindowSize(120, 50);
+                }
                 Console.OutputEncoding = Encoding.Unicode;
             }
             catch
@@ -166,14 +172,19 @@ namespace Cinegy.Srt.StreamAnalyser
                     _analyser.TeletextDecoder.Service.TeletextPageReady += Service_TeletextPageReady;
                     _analyser.TeletextDecoder.Service.TeletextPageCleared += Service_TeletextPageCleared;
                 }
+                srt.srt_startup();
 
-                _srtReceiver.SetHostname(streamOptions.AdapterAddress);
-                _srtReceiver.SetPort(streamOptions.SrtPort);
-                _srtReceiver.OnDataReceived += SrtReceiverOnDataReceived;
-                
+                _srtHandle = srt.srt_create_socket();
+
+                var socketAddress = SocketHelper.CreateSocketAddress(streamOptions.SrtAddress, streamOptions.SrtPort);
+
+                srt.srt_connect(_srtHandle, socketAddress, sizeof(sockaddr_in));
+
+                Console.WriteLine($"Requesting SRT Transport Stream on srt://@{streamOptions.SrtAddress}:{streamOptions.SrtPort}");
+
                 var ts = new ThreadStart(delegate
                 {
-                    SrtWorkerThread(_srtReceiver);
+                    ReceivingNetworkWorkerThread();
                 });
 
                 _receiverThread = new Thread(ts);
@@ -227,10 +238,8 @@ namespace Cinegy.Srt.StreamAnalyser
                 var rtpMetric = _analyser.RtpMetric;
 
                 PrintToConsole(
-                    "\nNetwork Details\n----------------\nTotal Packets Rcvd: {0} \tBuffer Usage: {1:0.00}%/(Peak: {2:0.00}%)\t\t\nTotal Data (MB): {3}\t\tPackets per sec:{4}\t",
-                    networkMetric.TotalPackets, networkMetric.NetworkBufferUsage, networkMetric.PeriodMaxNetworkBufferUsage,
-                    networkMetric.TotalData / 1048576,
-                    networkMetric.PacketsPerSecond);
+                    "\nNetwork Details\n----------------\nTotal Packets Rcvd: {0}  \t\t\nTotal Data (MB): {1}\t\tPackets per sec:{2}\t",
+                    networkMetric.TotalPackets, networkMetric.TotalData / 1048576, networkMetric.PacketsPerSecond);
 
                 PrintToConsole("Period Max Packet Jitter (ms): {0}\t\t",
                     networkMetric.PeriodLongestTimeBetweenPackets);
@@ -418,27 +427,47 @@ namespace Cinegy.Srt.StreamAnalyser
             }
         }
 
-        private static void SrtWorkerThread(SrtReceiver client)
+        private static void ReceivingNetworkWorkerThread()
         {
+            var buf = new byte[srt.SRT_LIVE_DEF_PLSIZE * 2];
             while (!_pendingExit)
             {
-                client.Run();
-                Console.WriteLine("\nConnection closed, resetting...");
-                Thread.Sleep(100);
+                var stat = srt.srt_recvmsg(_srtHandle, buf, srt.SRT_LIVE_DEF_PLSIZE);
+
+                if (stat == srt.SRT_ERROR)
+                {
+                    _pendingExit = true;
+                    Console.WriteLine($"Error in reading loop.");
+                }
+                else
+                {
+                    if (!_packetsStarted)
+                    {
+                        Console.WriteLine("Started receiving SRT packets...");
+                        _packetsStarted = true;
+                    }
+                    try
+                    {
+                        var data = new byte[stat];
+                        Buffer.BlockCopy(buf, 0, data, 0, stat);
+                        _analyser.RingBuffer.Add(ref data);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($@"Unhandled exception within network receiver: {ex.Message}");
+                        return;
+                    }
+                }
             }
+
+            Console.WriteLine("Closing SRT Receiver");
+            srt.srt_close(_srtHandle);
+            srt.srt_cleanup();
+            _srtHandle = null;
 
             Environment.Exit(0);
         }
-
-        private static void SrtReceiverOnDataReceived(sbyte* data, ulong dataSize)
-        {
-            if (dataSize < 1) return;
-            var ptr = new IntPtr(data);
-            var dataArr = new byte[dataSize];
-            Marshal.Copy(ptr, dataArr, 0, dataArr.Length);
-            _analyser.RingBuffer.Add(ref dataArr);
-        }
-
+        
         private static TeletextPage _decodedSubtitlePage;
 
         private static void Service_TeletextPageReady(object sender, EventArgs e)
@@ -463,7 +492,6 @@ namespace Cinegy.Srt.StreamAnalyser
             Console.CursorVisible = true;
             if (_pendingExit) return; //already trying to exit - allow normal behaviour on subsequent presses
             _pendingExit = true;
-            _srtReceiver.Stop();
             _analyser.Cancel();
             _analyser = null;
             //_receiverThread.Abort(); 

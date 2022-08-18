@@ -16,22 +16,25 @@ limitations under the License.
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
+using System.Threading;
 using CommandLine;
+using SrtSharp;
 
 namespace Cinegy.Srt.Recv
 {
     internal unsafe class Program
-    {
+    {   
+        private const int DEFAULT_CHUNK = 1328;
+
         private static UdpClient _udpClient;
-
-        private static SrtReceiver _srtRecvr = new SrtReceiver();
-        private static bool _running = false;
-
+        private static SWIGTYPE_p_int32_t _srtHandle;
+        private static bool _pendingExit;
+        private static bool _packetsStarted;
+        
         private static int Main(string[] args)
         {
             Console.CancelKeyPress += delegate {
-                _running = false;
+                _pendingExit = true;
             };
 
             var result = Parser.Default.ParseArguments<Options>(args);
@@ -39,12 +42,13 @@ namespace Cinegy.Srt.Recv
             return result.MapResult(
                 Run,
                 errs => CheckArgumentErrors());
-
         }
 
         ~Program()
         {
-            _srtRecvr.Stop();
+            if (_srtHandle == null) return;
+            srt.srt_close(_srtHandle);
+            srt.srt_cleanup();
         }
 
         private static int CheckArgumentErrors()
@@ -57,35 +61,69 @@ namespace Cinegy.Srt.Recv
 
         private static int Run(Options opts)
         {
+            PrepareOutputUdpClient(opts.OutputAdapterAddress, opts.MulticastAddress, opts.MulticastPort);       
 
-            _srtRecvr.SetHostname(opts.InputAdapterAddress);
-            _srtRecvr.SetPort(opts.SrtPort);
-            _srtRecvr.OnDataReceived += SrtRecvr_OnDataReceived;
+            srt.srt_startup();
 
-            Console.WriteLine($"About to attempt to bind for listening as SRT TARGET on {_srtRecvr.GetHostname()}:{_srtRecvr.GetPort()}");
+            _srtHandle = srt.srt_create_socket();
 
-            PrepareOutputUdpClient(opts.OutputAdapterAddress, opts.MulticastAddress, opts.MulticastPort);
+            var socketAddress = SocketHelper.CreateSocketAddress(opts.SrtAddress, opts.SrtPort);
 
-            _running = true;
+            srt.srt_connect(_srtHandle, socketAddress, sizeof(sockaddr_in));
+            
+            Console.WriteLine($"Requesting SRT Transport Stream on srt://@{opts.SrtAddress}:{opts.SrtPort}");
+            var ts = new ThreadStart(ReceivingNetworkWorkerThread);
+            var receiverThread = new Thread(ts) { Priority = ThreadPriority.Highest };
+            receiverThread.Start();
 
-            while (_running)
+            while (!_pendingExit)
             {
-                _srtRecvr.Run();
-                Console.WriteLine("\nConnection closed, resetting...");
-                System.Threading.Thread.Sleep(100);
+                Thread.Sleep(10);
             }
+                      
+            Console.WriteLine("Press enter to exit");
+            Console.ReadLine();
 
             return 0;
         }
-
-        private static void SrtRecvr_OnDataReceived(sbyte* data, ulong dataSize)
+        
+        private static void ReceivingNetworkWorkerThread()
         {
-            if (dataSize < 1) return;
-            var ptr = new IntPtr(data);
-            var dataarr = new byte[dataSize];
-            Marshal.Copy(ptr, dataarr, 0, dataarr.Length);
-            _udpClient.Send(dataarr, dataarr.Length);
-           // Console.Write(".");
+            var buf = new byte[DEFAULT_CHUNK * 2];
+            while (!_pendingExit)
+            {
+                var stat = srt.srt_recvmsg(_srtHandle, buf, DEFAULT_CHUNK);
+
+                if (stat == srt.SRT_ERROR)
+                {
+                    _pendingExit = true;
+                    Console.WriteLine($"Error in reading loop.");
+                }
+                else
+                {
+                    if (!_packetsStarted)
+                    {
+                        Console.WriteLine("Started receiving SRT packets...");
+                        _packetsStarted = true;
+                    }
+                    try
+                    {
+                        _udpClient.Send(buf, stat);
+                        Console.Write(".");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($@"Unhandled exception within network receiver: {ex.Message}");
+                        return;
+                    }
+                }
+            }
+
+            Console.WriteLine("Closing SRT Receiver");
+            srt.srt_close(_srtHandle);
+            srt.srt_cleanup();
+            _srtHandle = null;
+            Environment.Exit(0);
         }
         
         private static void PrepareOutputUdpClient(string adapterAddress, string multicastAddress, int multicastGroup)
@@ -100,10 +138,8 @@ namespace Cinegy.Srt.Recv
             _udpClient.ExclusiveAddressUse = false;
             _udpClient.Client.Bind(localEp);
 
-            var parsedMcastAddr = IPAddress.Parse(multicastAddress);
-            _udpClient.Connect(parsedMcastAddr, multicastGroup);
-        }
-        
-
+            var parsedMulticastAddress = IPAddress.Parse(multicastAddress);
+            _udpClient.Connect(parsedMulticastAddress, multicastGroup);
+        }      
     }
 }
