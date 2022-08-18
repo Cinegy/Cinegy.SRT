@@ -1,7 +1,7 @@
 init:
  #-ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
  
-image: Visual Studio 2019
+image: Visual Studio 2022
 
 skip_commits:
   message: /\[chore\]/
@@ -15,21 +15,11 @@ build:
   project: Cinegy.Srt.sln
   verbosity: minimal
 after_build:
-- cmd: >-
-    7z a Cinegy.Srt.Recv-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%.zip %APPVEYOR_BUILD_FOLDER%\Cinegy.Srt.Recv\bin\Release\Cinegy.Srt.Recv.exe
-        
-    appveyor PushArtifact Cinegy.Srt.Recv-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%.zip
-    
-    7z a Cinegy.Srt.StreamAnalyser-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%.zip %APPVEYOR_BUILD_FOLDER%\Cinegy.Srt.StreamAnalyser\bin\Release\Cinegy.Srt.StreamAnalyser.exe
-    
-    appveyor PushArtifact Cinegy.Srt.StreamAnalyser-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%.zip
-    
+- cmd: >-  
     7z a Cinegy.Srt.Recv-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%-PDB.zip %APPVEYOR_BUILD_FOLDER%\Cinegy.Srt.Recv\bin\Release
-    
     appveyor PushArtifact Cinegy.Srt.Recv-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%-PDB.zip
     
     7z a Cinegy.Srt.StreamAnalyser-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%-PDB.zip %APPVEYOR_BUILD_FOLDER%\Cinegy.Srt.StreamAnalyser\bin\Release
-
     appveyor PushArtifact Cinegy.Srt.StreamAnalyser-%APPVEYOR_REPO_BRANCH%-%APPVEYOR_BUILD_VERSION%-PDB.zip
 
 on_finish:

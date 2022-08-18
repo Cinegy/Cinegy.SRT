@@ -2,29 +2,32 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <Platforms>x64</Platforms>
   </PropertyGroup>
 
   <PropertyGroup>
-    <PublishReadyToRun>false</PublishReadyToRun>
-    <PublishTrimmed>true</PublishTrimmed>
+	  <PublishReadyToRun>true</PublishReadyToRun>
+	  <PublishTrimmed>true</PublishTrimmed>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishSingleFile>true</PublishSingleFile>
     <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Authors>Cinegy GmbH</Authors>
     <Product>Cinegy SRT Receiver</Product>
     <Description>Reads an SRT stream, and echoes that stream as plain UDP multicast</Description>
     <Copyright>©2019 Cinegy GmbH. All rights reserved.</Copyright>
     <AssemblyVersion>19.12.0.65534</AssemblyVersion>
     <FileVersion>19.12.0.65534</FileVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Cinegy.TsDecoder" Version="3.0.134" />
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
     <PackageReference Include="SrtSharp" Version="1.5.0.3532" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
   </ItemGroup>
   
 </Project>
