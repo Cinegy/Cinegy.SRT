@@ -21,10 +21,10 @@
     <FileVersion>19.12.0.65534</FileVersion>
   </PropertyGroup>
 
-  <ItemGroup>   
-    <PackageReference Include="SrtSharp" Version="1.4.1.207-beta" />
-    <PackageReference Include="Cinegy.TsDecoder" Version="3.0.126" />
-    <PackageReference Include="CommandLineParser" Version="2.8.0" />
+  <ItemGroup>
+    <PackageReference Include="Cinegy.TsDecoder" Version="3.0.134" />
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <PackageReference Include="SrtSharp" Version="1.5.0.3532" />
   </ItemGroup>
   
 </Project>

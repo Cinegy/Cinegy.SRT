@@ -22,10 +22,10 @@
   </PropertyGroup>
 
   <ItemGroup>   
-    <PackageReference Include="Cinegy.TsAnalysis" Version="1.0.36" />   
-    <PackageReference Include="SrtSharp" Version="1.4.1.207-beta" />
+    <PackageReference Include="Cinegy.TsAnalysis" Version="1.0.36" />
     <PackageReference Include="Cinegy.TsDecoder" Version="3.0.126" />
     <PackageReference Include="CommandLineParser" Version="2.8.0" />
+    <PackageReference Include="SrtSharp" Version="1.5.0.3532" />
   </ItemGroup>
-  
+
 </Project>

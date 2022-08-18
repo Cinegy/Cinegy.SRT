@@ -22,11 +22,8 @@ using NLog;
 using System;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Mime;
 using System.Reflection;
 using System.Runtime;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using SrtSharp;
@@ -45,12 +42,7 @@ namespace Cinegy.Srt.StreamAnalyser
         private static int _lastPrintedTsCount;
         //private static Thread _receiverThread; 
         
-        // SRT related constant values - probably should end up wrapped within the SrtSharp library itself
-        private const int AF_INET = 2;
-        private const int SOCK_DGRAM = 2; /* datagram socket */
-        private const int DEFAULT_CHUNK = 1328;
-
-        private static int _srtHandle;
+        private static SWIGTYPE_p_int32_t _srtHandle;
         private static bool _packetsStarted;
 
         static int Main(string[] args)
@@ -182,25 +174,11 @@ namespace Cinegy.Srt.StreamAnalyser
                 }
                 srt.srt_startup();
 
-                var destination = IPAddress.Parse(streamOptions.SrtAddress);
+                _srtHandle = srt.srt_create_socket();
 
-                _srtHandle = srt.srt_socket(AF_INET, SOCK_DGRAM, 0);
+                var socketAddress = SocketHelper.CreateSocketAddress(streamOptions.SrtAddress, streamOptions.SrtPort);
 
-                var sin = new sockaddr_in()
-                {
-                    sin_family = AF_INET,
-                    sin_port = (ushort)IPAddress.HostToNetworkOrder((short)streamOptions.SrtPort),
-#pragma warning disable 618
-                    sin_addr = (uint)destination.Address,
-#pragma warning restore 618
-                    sin_zero = 0
-                };
-
-                var hnd = GCHandle.Alloc(sin, GCHandleType.Pinned);
-
-                var socketAddress = new SWIGTYPE_p_sockaddr(hnd.AddrOfPinnedObject(), false);
-
-                srt.srt_connect(_srtHandle, socketAddress, sizeof(SrtSharp.sockaddr_in));
+                srt.srt_connect(_srtHandle, socketAddress, sizeof(sockaddr_in));
 
                 Console.WriteLine($"Requesting SRT Transport Stream on srt://@{streamOptions.SrtAddress}:{streamOptions.SrtPort}");
 
@@ -451,10 +429,10 @@ namespace Cinegy.Srt.StreamAnalyser
 
         private static void ReceivingNetworkWorkerThread()
         {
-            var buf = new byte[DEFAULT_CHUNK * 2];
+            var buf = new byte[srt.SRT_LIVE_DEF_PLSIZE * 2];
             while (!_pendingExit)
             {
-                var stat = srt.srt_recvmsg(_srtHandle, buf, DEFAULT_CHUNK);
+                var stat = srt.srt_recvmsg(_srtHandle, buf, srt.SRT_LIVE_DEF_PLSIZE);
 
                 if (stat == srt.SRT_ERROR)
                 {
@@ -485,7 +463,7 @@ namespace Cinegy.Srt.StreamAnalyser
             Console.WriteLine("Closing SRT Receiver");
             srt.srt_close(_srtHandle);
             srt.srt_cleanup();
-            _srtHandle = -1;
+            _srtHandle = null;
 
             Environment.Exit(0);
         }
