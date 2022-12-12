@@ -1,4 +1,4 @@
-﻿/*   Copyright 2019 Cinegy GmbH
+﻿/*   Copyright 2019-2022 Cinegy GmbH
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ limitations under the License.
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
+using System.Text.Json;
 using CommandLine;
 using SrtSharp;
 
@@ -24,10 +24,10 @@ namespace Cinegy.Srt.Recv
 {
     internal unsafe class Program
     {   
-        private const int DEFAULT_CHUNK = 1328;
+        private const int DEFAULT_CHUNK = 1328;  //sized to be able to cope with RTP headers if present
 
-        private static UdpClient _udpClient;
-        private static SWIGTYPE_p_int32_t _srtHandle;
+        private static readonly UdpClient UdpClient = new() { ExclusiveAddressUse = false };
+        private static int _srtHandle;
         private static bool _pendingExit;
         private static bool _packetsStarted;
         
@@ -46,7 +46,7 @@ namespace Cinegy.Srt.Recv
 
         ~Program()
         {
-            if (_srtHandle == null) return;
+            if (_srtHandle == 0) return;
             srt.srt_close(_srtHandle);
             srt.srt_cleanup();
         }
@@ -89,6 +89,9 @@ namespace Cinegy.Srt.Recv
         
         private static void ReceivingNetworkWorkerThread()
         {
+            var startTime = DateTime.UtcNow;
+            var lastStatSec = 0;
+
             var buf = new byte[DEFAULT_CHUNK * 2];
             while (!_pendingExit)
             {
@@ -108,8 +111,20 @@ namespace Cinegy.Srt.Recv
                     }
                     try
                     {
-                        _udpClient.Send(buf, stat);
-                        Console.Write(".");
+                        if (lastStatSec != DateTime.UtcNow.Second)
+                        {
+                            var perf = new CBytePerfMon();
+                            srt.srt_bistats(_srtHandle, perf, 0, 1);
+                            Console.Clear();
+                            
+                            var jsonStats = JsonSerializer.Serialize(perf);
+                            Console.WriteLine(jsonStats);
+                            
+                            lastStatSec = DateTime.UtcNow.Second;
+                        }
+
+                        UdpClient.Send(buf, stat);
+                        
                     }
                     catch (Exception ex)
                     {
@@ -122,7 +137,7 @@ namespace Cinegy.Srt.Recv
             Console.WriteLine("Closing SRT Receiver");
             srt.srt_close(_srtHandle);
             srt.srt_cleanup();
-            _srtHandle = null;
+            _srtHandle = 0;
             Environment.Exit(0);
         }
         
@@ -130,16 +145,15 @@ namespace Cinegy.Srt.Recv
         {
             var outputIp = adapterAddress != null ? IPAddress.Parse(adapterAddress) : IPAddress.Any;
             Console.WriteLine($"Outputting multicast data to {multicastAddress}:{multicastGroup} via adapter {outputIp}");
-
-            _udpClient = new UdpClient { ExclusiveAddressUse = false };
+            
             var localEp = new IPEndPoint(outputIp, multicastGroup);
 
-            _udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            _udpClient.ExclusiveAddressUse = false;
-            _udpClient.Client.Bind(localEp);
+            UdpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            UdpClient.ExclusiveAddressUse = false;
+            UdpClient.Client.Bind(localEp);
 
             var parsedMulticastAddress = IPAddress.Parse(multicastAddress);
-            _udpClient.Connect(parsedMulticastAddress, multicastGroup);
+            UdpClient.Connect(parsedMulticastAddress, multicastGroup);
         }      
     }
 }

@@ -1,5 +1,10 @@
 # Cinegy Managed SRT Tools 
 
+These tools are built to demonstrate how to use SrtSharp - the SRT C# wrapper library produced to make managed code interop with dotnet easier.
+
+The tools are not designed for production use, but for demonstration of concepts and to provide an easy way to get started playing with SRT for people with a background in C#.
+
+There is a Dockerfile that also provides a demonstration of how a container version of the project can be built and execute on 64-bit Linux too.
 
 # Auto Building
 
