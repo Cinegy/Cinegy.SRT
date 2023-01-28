@@ -132,8 +132,6 @@ internal class Program
                 Console.WriteLine($@"Unhandled exception within network receiver: {ex.Message}");
                 return;
             }
-
-            Thread.Sleep(10);
         }
     }
 }
