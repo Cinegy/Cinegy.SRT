@@ -6,7 +6,7 @@
 bin
 obj
 _toolkits
-/Cinegy.Srt.Recv/Cinegy.Srt.Recv.csproj.user
 packages
 .vs
 launchSettings.json
+*.user
