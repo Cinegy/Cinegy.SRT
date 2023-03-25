@@ -24,6 +24,9 @@ internal class Options
     [Option('p', "mulicastport", Required = true, HelpText = "Output multicast port to stream to.")]
     public int MulticastPort { get; set; }
 
+    [Option("nonblockingmode", Required = false, Default = true, HelpText = "Process using non blocking socket mode")]
+    public bool NonBlockingMode { get; set; }
+
     [Option('o', "outputadapter", Required = false, HelpText = "IP address of the adapter to emit multicast on (if not set, tries first binding adapter).")]
     public string OutputAdapterAddress { get; set; }
 
@@ -32,7 +35,4 @@ internal class Options
 
     [Option('s', "srtport", Required = false, Default = 9000, HelpText = "UDP port on the source listener to connect to")]
     public int SrtPort { get; set; }
-
-    [Option('q', "quiet", Required = false, Default = false, HelpText = "Don't print anything to the console")]
-    public bool SuppressOutput { get; set; }
 }

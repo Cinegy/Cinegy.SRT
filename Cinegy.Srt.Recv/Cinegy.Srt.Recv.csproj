@@ -18,7 +18,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="CommandLineParser" Version="2.9.1" />
-		<PackageReference Include="SrtSharp" Version="1.5.1.10027" />
+		<PackageReference Include="SrtSharp" Version="1.5.1.10038-alpha" />
 	</ItemGroup>
 
 </Project>
