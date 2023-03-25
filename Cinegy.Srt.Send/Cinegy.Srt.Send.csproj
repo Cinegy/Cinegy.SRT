@@ -4,28 +4,21 @@
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net7.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
 		<Platforms>x64</Platforms>
 	</PropertyGroup>
 
 	<PropertyGroup>
-    <Authors>Cinegy GmbH</Authors>
-    <Product>Cinegy SRT Receiver</Product>
-    <Description>Reads an SRT stream, and echoes that stream as plain UDP multicast</Description>
-    <Copyright>©2019-2023 Cinegy GmbH. All rights reserved.</Copyright>
-    <AssemblyVersion>19.12.0.65534</AssemblyVersion>
-    <FileVersion>19.12.0.65534</FileVersion>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-  </PropertyGroup>
+		<Authors>Cinegy GmbH</Authors>
+		<Product>Cinegy SRT Receiver</Product>
+		<Description>Reads an SRT stream, and echoes that stream as plain UDP multicast</Description>
+		<Copyright>©2019-2023 Cinegy GmbH. All rights reserved.</Copyright>
+		<AssemblyVersion>19.12.0.65534</AssemblyVersion>
+		<FileVersion>19.12.0.65534</FileVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.1" />
-    <PackageReference Include="SrtSharp" Version="1.5.1.10027" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="CommandLineParser" Version="2.9.1" />
+		<PackageReference Include="SrtSharp" Version="1.5.1.10038-alpha" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Properties\" />
-  </ItemGroup>
-
-  
 </Project>
