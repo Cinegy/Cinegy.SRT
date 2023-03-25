@@ -27,9 +27,9 @@ internal class Options
     [Option('p', "mulicastport", Required = true, HelpText = "Input multicast port to stream from.")]
     public int MulticastPort { get; set; }
 
+    [Option("nonblockingmode", Required = false, Default = true, HelpText = "Process using non blocking socket mode")]
+    public bool NonBlockingMode { get; set; }
+
     [Option('s', "srtport", Required = false, Default = 9000, HelpText = "UDP port for SRT connection")]
     public int SrtPort { get; set; }
-
-    [Option('q', "quiet", Required = false, Default = false, HelpText = "Don't print anything to the console")]
-    public bool SuppressOutput { get; set; }
 }

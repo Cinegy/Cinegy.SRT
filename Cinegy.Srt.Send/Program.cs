@@ -14,9 +14,10 @@
 
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using CommandLine;
 using SrtSharp;
+
+// ReSharper disable AccessToDisposedClosure
 
 namespace Cinegy.Srt.Send;
 
@@ -34,44 +35,57 @@ internal class Program
         return result;
     }
 
+    internal static void BackgroundThread(Options opts, UdpClient updClient)
+    {
+        try
+        {
+            var tokenSource = new CancellationTokenSource();
+            Console.CancelKeyPress += (_, args) =>
+            {
+                Console.WriteLine("Cancelling...");
+                args.Cancel = true;
+                tokenSource.Cancel();
+            };
+
+            // This method is expected to return new accepted SRT socket on each iteration
+            foreach (var socket in SrtAcquireAcceptedSocket(opts, tokenSource.Token))
+            {
+                // Ensure the accepted socket is properly disposed of after use
+                using var acceptedSocket = socket;
+
+                IPEndPoint receivedFromEndPoint = null;
+
+                while (!tokenSource.IsCancellationRequested)
+                {
+                    // Receive data from the UDP client
+                    var data = updClient.Receive(ref receivedFromEndPoint);
+
+                    // Send the received data to the accepted SRT socket
+                    var sndResult = srt.srt_send(acceptedSocket, data, data.Length);
+
+                    // Check if there was an error sending the data
+                    if (sndResult == srt.SRT_ERROR)
+                    {
+                        // If so, print the error message to the console and break out of the loop
+                        Console.WriteLine($"Failed to send data to receiver: {srt.srt_getlasterror_str()}");
+                        break;
+                    }
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
     internal static int Run(Options opts)
     {
-        // Initialize UDP client
-        var listenAddress = string.IsNullOrEmpty(opts.InputAdapterAddress)
-            ? IPAddress.Any
-            : IPAddress.Parse(opts.InputAdapterAddress);
+        SrtSetup();
 
-        Console.WriteLine($"Listening for multicast on udp://@{opts.MulticastAddress}:{opts.MulticastPort}");
+        using var updClient = UpdSetup(opts);
 
-        using var updClient = new UdpClient();
-        updClient.ExclusiveAddressUse = false;
-        updClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-        updClient.Client.ReceiveBufferSize = 1500 * 3000;
-        updClient.Client.Bind(new IPEndPoint(IPAddress.Any, opts.MulticastPort));
-        //updClient.JoinMulticastGroup(IPAddress.Parse(opts.MulticastAddress), listenAddress);
-
-        // Initialize srt
-        srt.srt_startup();
-
-        var srtHandle = srt.srt_create_socket();
-        var socketAddress = SocketHelper.CreateSocketAddress("0.0.0.0", opts.SrtPort);
-        srt.srt_bind(srtHandle, socketAddress, Marshal.SizeOf(typeof(sockaddr_in)));
-        srt.srt_listen(srtHandle, 5);
-
-        Console.WriteLine($"SRT client connected {socketAddress}");
-        Console.WriteLine($"Waiting for SRT connection on {opts.SrtPort}");
-
-        var lenHnd = GCHandle.Alloc(Marshal.SizeOf(typeof(sockaddr_in)), GCHandleType.Pinned);
-        var addressLenPtr = new SWIGTYPE_p_int(lenHnd.AddrOfPinnedObject(), false);
-        lenHnd.Free();
-
-        var srtSocketHandle = srt.srt_accept(srtHandle, socketAddress, addressLenPtr);
-        Console.WriteLine("SRT client connected to a socket");
-
-        // Start network receiving thread
-        // ReSharper disable once AccessToDisposedClosure
-        var ts = new ThreadStart(() => NetworkReceiverThread(srtSocketHandle, updClient));
-        var receiverThread = new Thread(ts)
+        var receiverThread = new Thread(() => BackgroundThread(opts, updClient))
         {
             Priority = ThreadPriority.Highest
         };
@@ -82,43 +96,181 @@ internal class Program
             Thread.Sleep(10);
         }
 
-        Console.WriteLine("Closing SRT Receiver...");
-
-        srt.srt_close(srtHandle);
-        srt.srt_cleanup();
+        SrtTearDown();
 
         return 0;
     }
 
-    private static void NetworkReceiverThread(int newSocket, UdpClient client)
+    private static SRTSOCKET SrtAcceptSocketInNonBlockingMode(CancellationToken token, SRTSOCKET socket)
     {
-        var tokenSource = new CancellationTokenSource();
-        Console.CancelKeyPress += (_, args) =>
+        while (!token.IsCancellationRequested)
         {
-            Console.WriteLine("Cancelling...");
-            args.Cancel = true;
-            tokenSource.Cancel();
-        };
+            // Accept an incoming connection on the SRT socket
+            // Parameters:
+            // - socket: the SRT socket to accept the connection on
+            // - out var acceptedEndPoint: the remote endpoint of the accepted connection
+            var acceptedSocket = srt.srt_accept(socket, out var acceptedEndPoint);
 
-        IPEndPoint receivedFromEndPoint = null;
+            // Check if the accepted socket is valid
+            if (acceptedSocket.IsValid)
+            {
+                Console.WriteLine($"SRT client connected to a {acceptedEndPoint}");
 
-        while (!tokenSource.IsCancellationRequested)
-        {
-            var data = client.Receive(ref receivedFromEndPoint);
-            try
-            {
-                var sndResult = srt.srt_send(newSocket, data, data.Length);
-                if (sndResult == srt.SRT_ERROR)
-                {
-                    Console.WriteLine($"Error in reading loop: {srt.srt_getlasterror_str()}");
-                    return;
-                }
+                // Return the accepted socket
+                return acceptedSocket;
             }
-            catch (Exception ex)
+
+            // If the accepted socket is not valid, get the error code and system error code for the last error that occurred
+            var systemErrorCode = 0;
+            var errorCode = srt.srt_getlasterror(ref systemErrorCode);
+
+            // Check if the error code is not EASYNCRCV (data not ready)
+            if (errorCode is not SRT_ERRNO.SRT_EASYNCRCV)
             {
-                Console.WriteLine($"Unhandled exception within network receiver: {ex.Message}");
-                return;
+                // If another error occurred, throw an exception with the error message
+                throw new InvalidOperationException($"Receive data from the SRT stream failed: {srt.srt_getlasterror_str()}");
             }
+
+            // Sleep for 10 milliseconds to give time for the next connection attempt
+            Thread.Sleep(10);
         }
+
+        return SRTSOCKET.NotInitialized;
+    }
+
+    private static IEnumerable<SRTSOCKET> SrtAcquireAcceptedSocket(Options options, CancellationToken token)
+    {
+        // Create a new SRT socket and validate its creation
+        using var socket = srt.srt_create_socket().Validate();
+
+        // Define a binding endpoint using the provided SRT port and bind the socket to it
+        var bindingEndPoint = new IPEndPoint(IPAddress.Any, options.SrtPort);
+        srt.srt_bind(socket, bindingEndPoint).Validate("Binding listen socket");
+
+        // Define a callback function that will be called when a new connection is accepted
+        void ListenCallback(IntPtr opaque, int ns, int version, IPEndPoint address, string id)
+        {
+            Console.WriteLine($"CALLBACK: SOCKET for stream {address} with '{id}' was accepted");
+
+            // Optionally set the passphrase for the accepted socket
+            // srt.srt_setsockflag_string(ns, SRT_STRING_SOCKOPT.SRTO_STRING_PASSPHRASE, "some password");
+        }
+
+        // Set the listening callback function for the SRT socket
+        // Parameters:
+        // - socket: the SRT socket to set the callback for
+        // - ListenCallback: the callback function to be called when a new connection is accepted
+        // - IntPtr.Zero: a null pointer, specifying the user data parameter (no user data will be passed)
+        srt.srt_listen_callback(socket, ListenCallback, IntPtr.Zero).Validate("Setting listen callback");
+
+        // Set the socket to listen for incoming connections with a backlog of 5
+        // Parameters:
+        // - socket: the SRT socket to start listening on
+        // - 5: the maximum number of pending connections in the backlog
+        srt.srt_listen(socket, 5).Validate("Setting listen backlog");
+
+        Console.WriteLine($"SRT client connected {bindingEndPoint}");
+        Console.WriteLine($"Waiting for SRT connection on {options.SrtPort}");
+
+        while (!token.IsCancellationRequested)
+        {
+            SRTSOCKET acceptedSocket;
+            // Check if non-blocking mode is enabled
+            if (options.NonBlockingMode)
+            {
+                // If so, accept the socket asynchronously using a custom method
+                acceptedSocket = SrtAcceptSocketInNonBlockingMode(token, socket);
+            }
+            else
+            {
+                // Otherwise, accept the socket in blocking mode
+                acceptedSocket = srt.srt_accept(socket, out var acceptedEndPoint).Validate();
+
+                Console.WriteLine($"SRT client connected to a {acceptedEndPoint}");
+            }
+
+            // Validate the accepted socket
+            acceptedSocket.Validate();
+
+            // Define a callback function that will be called when the connection is closed
+            void ConnectCallback(IntPtr opaque, int ns, SRT_ERRNO code, IPEndPoint address, int i)
+            {
+                Console.WriteLine($"CALLBACK: SOCKET for {address} closed with error: {code}");
+            }
+
+            // Set the connect callback function for the accepted SRT socket
+            // Parameters:
+            // - acceptedSocket: the SRT socket to set the callback for
+            // - ConnectCallback: the callback function to be called when the connection is closed
+            // - IntPtr.Zero: a null pointer, specifying the user data parameter (no user data will be passed)
+            srt.srt_connect_callback(acceptedSocket, ConnectCallback, IntPtr.Zero);
+
+            // Return the accepted SRT socket
+            yield return acceptedSocket;
+        }
+    }
+
+    private static void SrtSetup()
+    {
+        // Initialize the SRT library before using any SRT functions
+        srt.srt_startup();
+
+        // Set the logging flags: disable timestamps and thread names in log messages
+        srt.srt_setlogflags(LogFlag.DisableTime | LogFlag.DisableThreadName);
+
+        // Set the logging level to 'Notice', enabling log messages of Notice level and above
+        srt.srt_setloglevel(LogLevel.Notice);
+
+        // Add the following functional areas to the logging process:
+        // Sending API: log messages related to the sending API calls and operations
+        srt.srt_addlogfa(LogFunctionalArea.SendingApi);
+
+        // Sending Buffer: log messages related to the internal sending buffer management
+        srt.srt_addlogfa(LogFunctionalArea.SendingBuffer);
+
+        // Sending Channel: log messages related to the channel used for sending data
+        srt.srt_addlogfa(LogFunctionalArea.SendingChannel);
+
+        // Sending Group: log messages related to the group management in SRT for sending data
+        srt.srt_addlogfa(LogFunctionalArea.SendingGroup);
+
+        // Sending Queue: log messages related to the internal queue used for managing sent data
+        srt.srt_addlogfa(LogFunctionalArea.SendingQueue);
+
+        // Define a custom log handler function to process log messages generated by the SRT library
+        void LogHandler(IntPtr opaque, int level, string file, int line, string area, string message)
+        {
+            // Write the log message content to the console
+            Console.WriteLine(message);
+        }
+
+        // Set the custom log handler function for the SRT library
+        // IntPtr.Zero: a null pointer, specifying the user data parameter (no user data will be passed)
+        // LogHandler: the custom log handler function
+        srt.srt_setloghandler(IntPtr.Zero, LogHandler);
+    }
+
+    private static void SrtTearDown()
+    {
+        // Teardown the SRT library before application shutdown
+        srt.srt_cleanup();
+    }
+
+    private static UdpClient UpdSetup(Options opts)
+    {
+        var updClient = new UdpClient();
+
+        if (!IPAddress.TryParse(opts.InputAdapterAddress, out var inputAdapterAddress))
+        {
+            inputAdapterAddress = IPAddress.Any;
+        }
+
+        Console.WriteLine($"Listening for multicast on udp://@{opts.MulticastAddress}:{opts.MulticastPort}");
+        updClient.ExclusiveAddressUse = false;
+        updClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+        updClient.Client.ReceiveBufferSize = 1500 * 3000;
+        updClient.Client.Bind(new IPEndPoint(IPAddress.Any, opts.MulticastPort));
+        updClient.JoinMulticastGroup(IPAddress.Parse(opts.MulticastAddress), inputAdapterAddress);
+        return updClient;
     }
 }

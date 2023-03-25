@@ -37,26 +37,32 @@ internal class Program
         return result;
     }
 
+    internal static void BackgroundThread(Options opts, UdpClient updClient)
+    {
+        try
+        {
+            // Loop through the received data using the custom SrtReceiveData method
+            // This method is expected to return a sequence of Memory<byte> objects, each representing a chunk of received data
+            foreach (var memory in SrtReceiveData(opts))
+            {
+                // Send the received data to the UDP client
+                // The memory.Span property converts the Memory<byte> object to a ReadOnlySpan<byte>, which can be passed to the Send method
+                updClient.Send(memory.Span);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
     internal static int Run(Options opts)
     {
         SrtSetup();
 
         using var updClient = UdpSetup(opts);
 
-        var receiverThread = new Thread(() =>
-        {
-            try
-            {
-                foreach (var memory in SrtReceiveData(opts))
-                {
-                    updClient.Send(memory.Span);
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-        })
+        var receiverThread = new Thread(() => BackgroundThread(opts, updClient))
         {
             Priority = ThreadPriority.Highest,
         };
