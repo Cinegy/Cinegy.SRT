@@ -2,7 +2,6 @@
 /x64
 /ipch
 /Debug
-/Cinegy.Srt.Recv/obj
 bin
 obj
 _toolkits
@@ -10,3 +9,5 @@ packages
 .vs
 launchSettings.json
 *.user
+.gitlab-ci.yml
+.DS_Store

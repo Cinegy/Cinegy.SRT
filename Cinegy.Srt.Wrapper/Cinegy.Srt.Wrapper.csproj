@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Authors>Cinegy</Authors>
+		<Company>Cinegy GmbH</Company>
+		<Product>Cinegy Srt Wrapper</Product>
+		<PackageTags>SRT SrtSharp</PackageTags>
+		<NeutralLanguage>en</NeutralLanguage>
+		<Description>Cinegy Srt Wrapper for SrtSharp</Description>
+		<Version>1.0.0.0</Version>
+		<Copyright>©2022-2023 Cinegy GmbH. All rights reserved.</Copyright>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
+	  <PackageReference Include="SrtSharp" Version="1.5.1.10038-alpha" />
+	</ItemGroup>
+
+</Project>
