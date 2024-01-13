@@ -2,9 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net7.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Platforms>x64</Platforms>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -18,7 +16,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="CommandLineParser" Version="2.9.1" />
-		<PackageReference Include="SrtSharp" Version="1.5.3.10063-alpha" />
+		<PackageReference Include="SrtSharp" Version="1.5.3.10064-alpha" />
 	</ItemGroup>
 
 </Project>
